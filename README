@@ -1,0 +1,22 @@
+You can run the program by doing:
+---------------------------------
+./a.out [input file] [number of generations] [output file]
+
+********************************************************************
+
+If you want to use the makefile, here are the commands:
+-------------------------------------------------------
+make all: compiles the programme and produces an executable
+
+make runglid1100: Run the program with the glid1.txt as input and with 100 generations.
+
+make runglid11000: Run the program with the glid1.txt as input and with 1000 generations.
+
+make runglid2100: Run the programme with the glid2.txt as input and with 100 generations.
+
+make runglid21000: Run the programme with the glid2.txt as input and with 1000 generations.
+
+make clean: Deletes a.out and output.txt
+*********************************************************************
+
+If you want to change the number of threads just go to gol.c and change the value of NUM_OF_THREADS in the top.

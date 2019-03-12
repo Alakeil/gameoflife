@@ -4,7 +4,7 @@
 #include <omp.h>
 #define ALIVE 1
 #define DEAD 0
-#define THREADS_NUM 4 /*Number of generations*/
+#define THREADS_NUM 4 /*Number of threads*/
 
 char **cells;
 int **nextGenState;
@@ -28,17 +28,18 @@ int main(int argc, char *argv[]){
     int i,j,k=0,num_of_gens;
     createTable(argv[1]);
     num_of_gens=atoi(argv[2]);
-    printf("Number of gens is %d\n",num_of_gens);
     while(k<=num_of_gens){
-        #pragma omp parallel for default(none) private(j) shared(rows,columns,cells,nextGenState) num_threads(THREADS_NUM)
-            for(i=0;i<rows;i++){
-                printf("Thread id is %d\n",omp_get_thread_num());
-                for(j=0;j<columns;j++){
-                    calculateNextGenState(i,j);
-                    updateCell(i,j);
-                }
-            }
-        
+    #pragma omp parallel default(none) \
+        private(i,j) shared(rows,columns,cells,nextGenState) num_threads(THREADS_NUM)
+	{
+	#pragma omp for nowait 
+        	for(i=0;i<rows;i++){
+        	        for(j=0;j<columns;j++){
+                    		calculateNextGenState(i,j);
+                    		updateCell(i,j);
+        		}
+        	}
+     	}
         k++;
     }
     produceOutput(argv[3]);
@@ -66,7 +67,6 @@ void createTable(char *fname){
         perror("GETLINE() COULD NOT READ LINE\n");
         return;
     }
-    printf("PASSED HERE!\n");
     q=line;
     while(*q!=' ')
         q++;
@@ -82,27 +82,33 @@ void createTable(char *fname){
     line=NULL;
 
     /*Allocating memory for the cells array*/
-    cells=malloc(sizeof(char*)*rows);
-    for(i=0;i<rows;i++)
-        cells[i]=malloc(sizeof(char)*columns);
-
-    /*Allocating memory for the nextGenState array*/
+    cells=malloc(sizeof(char*)*rows); 
     nextGenState=malloc(sizeof(int*)*rows);
-    for(i=0;i<rows;i++)
-        nextGenState[i]=malloc(sizeof(int)*columns);
+#pragma omp parallel default(none) \
+   private(i,j) shared(rows,columns,cells,nextGenState) num_threads(THREADS_NUM)
+    {
+    	#pragma omp for nowait
+    	for(i=0;i<rows;i++){
+        	cells[i]=malloc(sizeof(char)*columns);
+    		for(j=0;j<columns;j++){
+            	cells[i][j]='-';
+            
+        	}
 
-    /*Initializing the cells array*/
-    for(i=0;i<rows;i++){
-        for(j=0;j<columns;j++){
-            cells[i][j]='-';
-            nextGenState[i][j]=-1;
-        }
+    	}
+    
+    	#pragma omp for nowait
+    	for(i=0;i<rows;i++){
+    		nextGenState[i]=malloc(sizeof(int)*columns);
+		for(j=0;j<columns;j++){
+        		nextGenState[i][j]=-1;
+        	}
+
+    	}
     }
 
 
-
-
-
+          
     i=0;
     while(getline(&line,&len,f)!=-1){
         q=line;
@@ -112,8 +118,7 @@ void createTable(char *fname){
                 tmp=q;
                 tmp+=2;
                 if(*tmp!='|'){
-                    printf("Done with this line!\n");
-                    break; //Line done
+                	break; //Line done
                 }
             }else{
                 cells[i][j]=*q;
